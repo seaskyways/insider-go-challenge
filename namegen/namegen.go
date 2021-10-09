@@ -3,6 +3,7 @@ package namegen
 import (
 	"embed"
 	"encoding/json"
+	"github.com/gertd/go-pluralize"
 	"log"
 	"math/rand"
 	"strings"
@@ -35,6 +36,8 @@ func init() {
 		panic(err)
 	}
 
+	log.Println("namegen initialized, possible unique combinations:", len(animals)*len(adjectives))
+
 	rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
@@ -44,4 +47,11 @@ func Generate() string {
 	adjective := strings.Title(adjectives[rng.Intn(len(adjectives))])
 	animal := strings.Title(animals[rng.Intn(len(animals))])
 	return adjective + " " + animal
+}
+
+var plural = pluralize.NewClient()
+
+func GenerateTeamName() string {
+	animal := strings.Title(animals[rng.Intn(len(animals))])
+	return plural.Pluralize(animal, 5, false)
 }
