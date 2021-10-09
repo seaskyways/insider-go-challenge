@@ -4,14 +4,21 @@ import (
 	"insider-go-challenge/game"
 	"insider-go-challenge/namegen"
 	"math/rand"
+	"time"
 )
 
 type Sim struct {
-	Rng *rand.Rand
+	Rng    *rand.Rand
+	Ticker *time.Ticker
+
+	Matches []SimMatch
 }
 
 func NewSim(rng *rand.Rand) *Sim {
-	return &Sim{Rng: rng}
+	return &Sim{
+		Rng:    rng,
+		Ticker: time.NewTicker(TickRate / time.Second),
+	}
 }
 
 func (sim *Sim) GeneratePlayer() *SimPlayer {
@@ -52,14 +59,36 @@ func (sim *Sim) DistributePlayerActionSuccessRates(p *SimPlayer) {
 }
 
 func (sim *Sim) GenerateTeam() *game.Team {
-	return &game.Team{
+	t := &game.Team{
 		ID: "Team " + namegen.GenerateTeamName(),
-		Players: []game.Player{
-			sim.GeneratePlayer(),
-			sim.GeneratePlayer(),
-			sim.GeneratePlayer(),
-			sim.GeneratePlayer(),
-			sim.GeneratePlayer(),
-		},
 	}
+	t.Players = make(map[string]game.Player)
+	for i := 0; i < 5; i++ {
+		p := sim.GeneratePlayer()
+		t.Players[p.ID()] = p
+	}
+	return t
+}
+
+func (sim *Sim) Tick() {
+	for _, match := range sim.Matches {
+		match.Tick()
+	}
+}
+
+func (sim *Sim) Start() error {
+	for range sim.Ticker.C {
+		sim.Tick()
+		allMatchesDone := true
+		for _, match := range sim.Matches {
+			if match.state != game.Done {
+				allMatchesDone = false
+				break
+			}
+		}
+		if allMatchesDone {
+			break
+		}
+	}
+	return nil
 }

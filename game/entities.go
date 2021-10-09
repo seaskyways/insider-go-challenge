@@ -18,7 +18,7 @@ type Match interface {
 
 type Team struct {
 	ID      string
-	Players []Player
+	Players map[string]Player
 }
 
 type Bracket interface {
