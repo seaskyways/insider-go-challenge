@@ -1,6 +1,8 @@
 package gamesim
 
 import (
+	"context"
+	"fmt"
 	"insider-go-challenge/game"
 	"insider-go-challenge/namegen"
 	"math/rand"
@@ -76,18 +78,24 @@ func (sim *Sim) Tick() {
 	}
 }
 
-func (sim *Sim) Start() error {
-	for range sim.Ticker.C {
-		sim.Tick()
-		allMatchesDone := true
-		for _, match := range sim.Matches {
-			if match.state != game.Done {
-				allMatchesDone = false
-				break
+func (sim *Sim) Start(ctx context.Context) error {
+masterLoop:
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("cancelled: %w", ctx.Err())
+		case <-sim.Ticker.C:
+			sim.Tick()
+			allMatchesDone := true
+			for _, match := range sim.Matches {
+				if match.state != game.Done {
+					allMatchesDone = false
+					break
+				}
 			}
-		}
-		if allMatchesDone {
-			break
+			if allMatchesDone {
+				break masterLoop
+			}
 		}
 	}
 	return nil
