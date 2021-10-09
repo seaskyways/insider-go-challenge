@@ -1,6 +1,10 @@
 package gamesim
 
-import "insider-go-challenge/game"
+import (
+	"fmt"
+	"github.com/kr/pretty"
+	"insider-go-challenge/game"
+)
 
 const ActionAcceptanceThreshold = .5
 const ActionSuccessThreshold = .1
@@ -12,6 +16,14 @@ type SimPlayer struct {
 
 	sim   *Sim
 	match game.Match
+}
+
+func (s *SimPlayer) String() string {
+	return fmt.Sprintf("ID: %25s | Action Probabilities: %# v | Action Success Rates: %# v",
+		s.id,
+		pretty.Formatter(s.actionProbabilities),
+		pretty.Formatter(s.actionSuccessRates),
+	)
 }
 
 func (s *SimPlayer) ID() string {
@@ -34,8 +46,7 @@ func (s *SimPlayer) Action() (game.PlayerAction, bool) {
 	var action game.PlayerAction
 	for i := 0; ; i++ {
 		action = actions[s.sim.Rng.Intn(len(actions))]
-		//TODO: use action probabilities
-		probability := 1.0
+		probability := s.actionProbabilities[action]
 		coinFlip := s.sim.Rng.Float64()
 		didDoTheAction := (probability * coinFlip) > ActionAcceptanceThreshold
 		if didDoTheAction {

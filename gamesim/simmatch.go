@@ -2,7 +2,7 @@ package gamesim
 
 import (
 	"errors"
-	"github.com/kr/pretty"
+	"fmt"
 	"go.uber.org/zap"
 	"insider-go-challenge/game"
 	"log"
@@ -66,19 +66,27 @@ func (sm *SimMatch) FindPlayer(id string) (game.Player, string, error) {
 	}
 }
 
+func PlayersToString(players map[string]game.Player) (out string) {
+	out = "\n"
+	for _, player := range players {
+		out += fmt.Sprintf("%s\n", player)
+	}
+	return
+}
+
 func (sm *SimMatch) Tick() {
 	if !sm.timeStarted.IsZero() && time.Now().Sub(sm.timeStarted).Minutes() > scale(48) {
 		sm.state = game.Done
 	}
-	sm.logger.Debug("ticking")
-
 	switch sm.state {
-
 	case game.New:
 		sm.logger.Debug("starting new game")
 		sm.logger.Debugf("%s vs %s", sm.teamA.ID, sm.teamB.ID)
-		sm.logger.Debugf("Team A players: %# v", pretty.Formatter(sm.teamA.Players))
-		sm.logger.Debugf("Team B players: %# v", pretty.Formatter(sm.teamB.Players))
+		sm.logger.Debug()
+		sm.logger.Debugf("Team A players: \n" + PlayersToString(sm.teamA.Players))
+		sm.logger.Debug()
+		sm.logger.Debugf("Team B players: \n" + PlayersToString(sm.teamA.Players))
+		sm.logger.Debug()
 
 		sm.round++
 		sm.timeStarted = time.Now()

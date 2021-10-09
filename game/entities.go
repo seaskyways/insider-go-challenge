@@ -24,8 +24,8 @@ type Team struct {
 type Bracket interface {
 	Stages() []Stage
 
-	// Advance builds the next stage according to the state of the current stage
-	Advance()
+	// Advance builds the next stage according to the state of the current stage, returns with winning team if exists
+	Advance() *Team
 }
 
 type Stage struct {

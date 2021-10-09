@@ -22,7 +22,7 @@ func NewSim(rng *rand.Rand) *Sim {
 	logger, _ := zap.NewDevelopment()
 	return &Sim{
 		Rng:    rng,
-		Ticker: time.NewTicker(time.Millisecond * 200),
+		Ticker: time.NewTicker(time.Millisecond * 500),
 		Logger: logger.Sugar(),
 	}
 }
@@ -73,9 +73,27 @@ func (sim *Sim) Tick() {
 	}
 }
 
-func (sim *Sim) AddMatch() *SimMatch {
+func (sim *Sim) RegisterMatch(match *SimMatch) {
+	sim.Matches = append(sim.Matches, match)
+}
+func (sim *Sim) UnregisterMatch(match *SimMatch) {
+	for i, simMatch := range sim.Matches {
+		if simMatch == match {
+			sim.Matches = append(sim.Matches[:i], sim.Matches[i+1:]...)
+		}
+	}
+}
+func (sim *Sim) ClearMatches() {
+	sim.Matches = sim.Matches[:0]
+}
+
+func (sim *Sim) AddNewMatch() *SimMatch {
 	teamA := sim.GenerateTeam()
 	teamB := sim.GenerateTeam()
+	return sim.AddNewMatchTeams(teamA, teamB)
+}
+
+func (sim *Sim) AddNewMatchTeams(teamA, teamB *game.Team) *SimMatch {
 	match := &SimMatch{
 		sim:          sim,
 		teamA:        teamA,

@@ -35,7 +35,7 @@ func TestSim_DistributePlayerActionProbabilities(t *testing.T) {
 
 func TestSim_Start(t *testing.T) {
 	sim := NewSim(rng)
-	match := sim.AddMatch()
+	match := sim.AddNewMatch()
 	t.Logf("added new match: %s vs %s", match.teamA.ID, match.teamB.ID)
 
 	sim.Start(context.Background())
