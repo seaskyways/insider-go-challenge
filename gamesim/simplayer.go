@@ -2,7 +2,7 @@ package gamesim
 
 import "insider-go-challenge/game"
 
-const ActionAcceptanceThreshold = .9
+const ActionAcceptanceThreshold = .5
 const ActionSuccessThreshold = .5
 
 type SimPlayer struct {
@@ -33,7 +33,7 @@ func (s *SimPlayer) Action() (game.PlayerAction, bool) {
 	// decide which action was done according to probabilities
 	var action game.PlayerAction
 	for i := 0; ; i++ {
-		action = actions[i]
+		action = actions[i%len(actions)]
 		probability := s.actionProbabilities[action]
 		coinFlip := s.sim.Rng.Float64()
 		didDoTheAction := (probability * coinFlip) > ActionAcceptanceThreshold
@@ -41,6 +41,7 @@ func (s *SimPlayer) Action() (game.PlayerAction, bool) {
 			break
 		} else if i > 1000 {
 			action = game.PlayerActionRun
+			break
 		}
 	}
 

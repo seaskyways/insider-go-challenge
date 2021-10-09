@@ -3,6 +3,7 @@ package gamesim
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"insider-go-challenge/game"
 	"insider-go-challenge/namegen"
 	"math/rand"
@@ -12,14 +13,17 @@ import (
 type Sim struct {
 	Rng    *rand.Rand
 	Ticker *time.Ticker
+	Logger *zap.SugaredLogger
 
-	Matches []SimMatch
+	Matches []*SimMatch
 }
 
 func NewSim(rng *rand.Rand) *Sim {
+	logger, _ := zap.NewDevelopment()
 	return &Sim{
 		Rng:    rng,
-		Ticker: time.NewTicker(TickRate / time.Second),
+		Ticker: time.NewTicker(time.Millisecond * 120),
+		Logger: logger.Sugar(),
 	}
 }
 
@@ -43,10 +47,12 @@ func (sim *Sim) DistributePlayerActionProbabilities(p *SimPlayer) {
 	}
 
 	// distribute probabilities at the available actions
-	for key := range p.actionProbabilities {
-		prob := rand.Intn(total)
-		total = total - prob
-		p.actionProbabilities[key] = (float64(prob)) / 1000000
+	for total > 10 {
+		for key := range p.actionProbabilities {
+			prob := rand.Intn(total)
+			total = total - prob
+			p.actionProbabilities[key] += (float64(prob)) / 1000000
+		}
 	}
 	p.actionProbabilities[game.PlayerActionRun] += float64(total) / 1000000
 }
@@ -76,6 +82,26 @@ func (sim *Sim) Tick() {
 	for _, match := range sim.Matches {
 		match.Tick()
 	}
+}
+
+func (sim *Sim) AddMatch() *SimMatch {
+	teamA := sim.GenerateTeam()
+	teamB := sim.GenerateTeam()
+	match := &SimMatch{
+		sim:          sim,
+		teamA:        teamA,
+		teamB:        teamB,
+		teamAScore:   0,
+		teamBScore:   0,
+		round:        0,
+		state:        game.New,
+		timeStarted:  time.Time{},
+		attackTime:   time.Time{},
+		ballPlayerID: "",
+		logger:       sim.Logger.Named(teamA.ID + " vs " + teamB.ID),
+	}
+	sim.Matches = append(sim.Matches, match)
+	return match
 }
 
 func (sim *Sim) Start(ctx context.Context) error {

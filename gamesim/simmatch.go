@@ -2,6 +2,7 @@ package gamesim
 
 import (
 	"errors"
+	"go.uber.org/zap"
 	"insider-go-challenge/game"
 	"log"
 	"time"
@@ -20,6 +21,7 @@ type SimMatch struct {
 	timeStarted  time.Time
 	attackTime   time.Time
 	ballPlayerID string
+	logger       *zap.SugaredLogger
 }
 
 func (sm *SimMatch) TeamA() *game.Team {
@@ -67,27 +69,39 @@ func (sm *SimMatch) Tick() {
 	if !sm.timeStarted.IsZero() && time.Now().Sub(sm.timeStarted).Minutes() > scale(48) {
 		sm.state = game.Done
 	}
+	sm.logger.Debug("ticking")
 
 	switch sm.state {
 
 	case game.New:
+		sm.logger.Debug("starting new game")
+		sm.logger.Debugf("%s vs %s", sm.teamA.ID, sm.teamB.ID)
+		sm.logger.Debugf("Team A players: %#v", sm.teamA.Players)
+		sm.logger.Debugf("Team B players: %#v", sm.teamB.Players)
+
 		sm.round++
 		sm.timeStarted = time.Now()
 
 		var ballTeam *game.Team
 		if sm.sim.Rng.Float64() > 0.5 {
 			ballTeam = sm.teamA
+			sm.logger.Debug("starting team A")
 		} else {
 			ballTeam = sm.teamB
+			sm.logger.Debug("starting team B")
 		}
 
 		initBallPlayer := ballTeam.RandomPlayer(sm.sim.Rng)
 
 		sm.ballPlayerID = initBallPlayer.ID()
+		sm.logger.Debug("initial player ID: ", initBallPlayer.ID())
 		sm.state = game.Running
+		sm.ResetAttackTime()
 
 	case game.NewRoundPending:
 		sm.round++
+		sm.logger.Debug("starting new round:", sm.round)
+
 		_, teamSide, err := sm.FindPlayer(sm.BallPlayerID())
 		if err != nil {
 			log.Fatalln("player was not found")
@@ -105,6 +119,7 @@ func (sm *SimMatch) Tick() {
 			sm.ballPlayerID = sm.TeamB().RandomPlayer(sm.sim.Rng).ID()
 		}
 
+		sm.logger.Debug("team", oppTeamSide, "has the ball, player:", sm.ballPlayerID)
 		sm.ResetAttackTime()
 		sm.state = game.Running
 
@@ -132,13 +147,24 @@ func (sm *SimMatch) Tick() {
 		if success {
 			switch action {
 			case game.PlayerActionPass:
-				sm.ballPlayerID = ballTeam.RandomPlayer(sm.sim.Rng).ID()
+				for i := 0; i < 100; i++ {
+					newBallPlayerID := ballTeam.RandomPlayer(sm.sim.Rng).ID()
+					if newBallPlayerID != sm.ballPlayerID {
+						sm.logger.Debug("ball getting passed from", sm.ballPlayerID, "to", newBallPlayerID)
+						sm.ballPlayerID = newBallPlayerID
+					}
+				}
 			case game.PlayerActionShoot2Point:
 				sm.AddTeamScore(teamSide, 2)
 				sm.state = game.NewRoundPending
+
+				sm.logger.Debug("team", teamSide, "scored 2!")
+
 			case game.PlayerActionShoot3Point:
 				sm.AddTeamScore(teamSide, 3)
 				sm.state = game.NewRoundPending
+
+				sm.logger.Debug("team", teamSide, "scored 3!")
 			}
 		} else {
 			// on failure hand the ball to the opposing team
@@ -154,6 +180,8 @@ func (sm *SimMatch) Tick() {
 	case game.Done:
 
 	}
+
+	sm.logger.Debugf("%s %v - %v %s", sm.teamA.ID, sm.teamAScore, sm.teamBScore, sm.teamB.ID)
 }
 
 func (sm *SimMatch) AddTeamScore(side string, amount int) {

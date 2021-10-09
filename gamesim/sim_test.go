@@ -1,6 +1,7 @@
 package gamesim
 
 import (
+	"context"
 	cryptorand "crypto/rand"
 	"encoding/binary"
 	"math/rand"
@@ -30,4 +31,12 @@ func TestSim_DistributePlayerActionProbabilities(t *testing.T) {
 		sum += v
 	}
 	t.Log("total probability:", sum)
+}
+
+func TestSim_Start(t *testing.T) {
+	sim := NewSim(rng)
+	match := sim.AddMatch()
+	t.Logf("added new match: %s vs %s", match.teamA.ID, match.teamB.ID)
+
+	sim.Start(context.Background())
 }
